@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>絶妖星乱舞p4 ひろな個人練習用</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif; background: #111; color: #e8e8e8; padding: 12px; }
+
+  .title-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  h1 { font-size: 15px; font-weight: 500; }
+  .clear-btn { font-size: 12px; padding: 4px 10px; border-radius: 6px; border: 0.5px solid rgba(255,255,255,0.25); background: transparent; color: #aaa; cursor: pointer; }
+  .clear-btn:hover { background: rgba(255,255,255,0.08); }
+
+  /* 入力表示 */
+  .display { background: #1c1c1c; border: 0.5px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+  .digits { display: flex; gap: 4px; justify-content: center; }
+  .digit-col { flex: 1; max-width: 56px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .digit-label { display: flex; flex-direction: column; align-items: center; line-height: 1.2; min-height: 26px; }
+  .dl-group { font-size: 9px; color: #888; white-space: nowrap; }
+  .dl-sub { font-size: 9px; color: #7EC8E3; white-space: nowrap; }
+  .digit { width: 100%; aspect-ratio: 3/4; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; border-radius: 8px; background: #232323; border: 1px solid rgba(255,255,255,0.1); color: #555; }
+  .digit.filled { color: #e8e8e8; border-color: rgba(126,200,227,0.5); }
+  .digit.cursor { border-color: #7EC8E3; }
+
+  /* テンキー風入力 */
+  .keypad { display: flex; gap: 10px; margin-bottom: 12px; align-items: stretch; }
+  .key-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .key-col:nth-child(3) { flex: 0.6; }
+  .key-col:nth-child(3) .key.del { flex: 1; width: 100%; }
+  .key-yn { font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
+  .yn-yes { color: #1D9E75; }
+  .yn-no  { color: #E24B4A; }
+  .key { width: 100%; aspect-ratio: 2/1; font-size: 28px; font-weight: 600; border-radius: 12px; border: 0.5px solid rgba(255,255,255,0.2); background: #1c1c1c; color: #e8e8e8; cursor: pointer; transition: background 0.08s; }
+  .key:active { background: #2a2a2a; }
+  /* ⌫は幅が狭くてもアスペクト比に縛られず、1・2と同じ高さにする */
+  .key.del { font-size: 18px; color: #aaa; aspect-ratio: auto; align-self: stretch; height: auto; }
+
+  /* 結果 */
+  .summary { background: #1c1c1c; border: 0.5px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+  .sum-title { font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+  .sum-row { font-size: 14px; margin-bottom: 6px; line-height: 1.5; }
+  .sum-row .lbl { font-weight: 500; color: #aaa; margin-right: 4px; }
+  .sum-empty { font-size: 12px; color: #666; }
+  .chat-empty { font-size: 12px; color: #666; }
+  /* チャット形式出力 */
+  .chat-box { display: flex; flex-direction: column; gap: 2px; overflow-x: auto; }
+  .chat-line { font-family: "Meiryo UI", "Meiryo", sans-serif; font-size: 13px; line-height: 1.7; color: #e8e8e8; white-space: pre; }
+  /* 集計行の高さ確保（レイアウトが動かないように） */
+  .sum-row { min-height: 21px; }
+  .sum-row.placeholder { color: #555; }
+
+  /* 追加トグル（結果非反映・表示のみ） */
+  .extra { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .extra-note { font-size: 12px; color: #888; }
+  .extra-row { display: flex; gap: 10px; }
+  .ext-btn { flex: 1; aspect-ratio: 2/1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 20px; font-weight: 500; border-radius: 12px; border: 0.5px solid rgba(255,255,255,0.2); background: #1c1c1c; color: #ccc; cursor: pointer; transition: background 0.08s, border-color 0.08s, color 0.08s; line-height: 1.3; }
+  .acc-sub { font-size: 14px; }
+  .ext-btn:active { background: #2a2a2a; }
+  /* 加速度（排他・緑/赤） */
+  .ext-btn.acc-true.on  { background: #1D9E75; border-color: #1D9E75; color: #fff; }
+  .ext-btn.acc-false.on { background: #E24B4A; border-color: #E24B4A; color: #fff; }
+  /* 雷=薄紫 / 氷=水色 */
+  .ext-btn.thunder.on { background: #6B4E9E; border-color: #6B4E9E; color: #fff; }
+  .ext-btn.ice.on     { background: #2E7D9E; border-color: #2E7D9E; color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="title-bar">
+  <h1>絶妖星乱舞p4 ひろな個人練習用</h1>
+  <button class="clear-btn" onclick="clearAll()">クリア</button>
+</div>
+
+<div class="display">
+  <div class="digits" id="digits"></div>
+</div>
+
+<div class="summary" id="summary"></div>
+
+<div class="keypad">
+  <div class="key-col">
+    <div class="key-yn yn-yes">YES</div>
+    <button class="key" onclick="press(1)">１</button>
+  </div>
+  <div class="key-col">
+    <div class="key-yn yn-no">NO</div>
+    <button class="key" onclick="press(2)">２</button>
+  </div>
+  <div class="key-col">
+    <div class="key-yn">&nbsp;</div>
+    <button class="key del" onclick="del()">⌫</button>
+  </div>
+</div>
+
+<div class="extra">
+  <div class="extra-note">以下メモ（集計結果には反映されません）</div>
+  <div class="extra-row">
+    <button class="ext-btn acc-true"  id="accTrue"  onclick="toggleAcc('true')">加速度<br><span class="acc-sub">（本当・動かない）</span></button>
+    <button class="ext-btn acc-false" id="accFalse" onclick="toggleAcc('false')">加速度<br><span class="acc-sub">（嘘・動く）</span></button>
+  </div>
+  <div class="extra-row">
+    <button class="ext-btn thunder" id="thunder" onclick="toggleExt('thunder')">雷</button>
+    <button class="ext-btn ice"     id="ice"     onclick="toggleExt('ice')">氷</button>
+  </div>
+</div>
+
+
+<script>
+let input = ''; // 最大6桁
+
+const STR = {
+  GC1_HEADER: "<<<<<<<<<<<< start >>>>>>>>>>>>",
+  GC1_TRUE_EARLY_1: "《水雷〇》・・・・・・・・・・・・・・・・・・・・・・",
+  GC1_TRUE_EARLY_2: "・・・・《見ない》・・・・・・・・・・・・・・・・・・",
+  GC1_TRUE_LATE_1: "・・・・《見ない》・・・・・・・・・・・・・・・・・・",
+  GC1_TRUE_LATE_2: "・・・・・・・・・・・・《水雷〇》・・・・・・・・・・",
+  GC1_FALSE_EARLY_1: " 《水雷？》・・・・・・・・・・・・・・・・・・・・・・",
+  GC1_FALSE_EARLY_2: "・・・・《見る》・・・・・・・・・・・・・・・・・・・・",
+  GC1_FALSE_LATE_1: "・・・・《見る》・・・・・・・・・・・・・・・・・・・・",
+  GC1_FALSE_LATE_2: "・・・・・・・・・・・・《水雷？》・・・・・・・・・・",
+  HT1_TRUE_HONOO: " ・・・・・・・・《タケノコ》・・・・・・・・・・・・",
+  HT1_TRUE_TSUNAMI: "・・・・・・・・・・・・・・・・・・・・《ドーナツ》",
+  HT1_FALSE_HONOO: "・・・・・・・・《ドーナツ》・・・・・・・・・・・・",
+  HT1_FALSE_TSUNAMI: "・・・・・・・・・・・・・・・・・・・・《タケノコ》",
+  GC2_TRUE_EARLY_1: "《水雷〇》・・・・・・・・・・・・・・・・・・・・・・",
+  GC2_TRUE_EARLY_2: "・・・・・・・・・・・・・・・・《見ない》・・・・・・",
+  GC2_TRUE_LATE_1: "・・・・・・・・・・・・《水雷〇》・・・・・・・・・・",
+  GC2_TRUE_LATE_2: "・・・・・・・・・・・・・・・・《見ない》・・・・・・",
+  GC2_FALSE_EARLY_1: "《水雷？》・・・・・・・・・・・・・・・・・・・・・・",
+  GC2_FALSE_EARLY_2: "・・・・・・・・・・・・・・・・《見る》・・・・・・・・",
+  GC2_FALSE_LATE_1: "・・・・・・・・・・・・《水雷？》・・・・・・・・・・",
+  GC2_FALSE_LATE_2: "・・・・・・・・・・・・・・・・《見る》・・・・・・・・",
+  HT2_TRUE_HONOO: " ・・・・・・・・《タケノコ》・・・・・・・・・・・・",
+  HT2_TRUE_TSUNAMI: "・・・・・・・・・・・・・・・・・・・・《ドーナツ》",
+  HT2_FALSE_HONOO: "・・・・・・・・《ドーナツ》・・・・・・・・・・・・",
+  HT2_FALSE_TSUNAMI: "・・・・・・・・・・・・・・・・・・・・《タケノコ》",
+  ACC_TRUE: "【 　　加速度爆弾　とまれ 　　】",
+  ACC_FALSE: "【 　　加速度爆弾　うごけ 　　 】"
+};
+
+const DIGIT_LABELS = [
+  { group:'GC1',     sub:'本当?' },
+  { group:'ほのつな1', sub:'本当?' },
+  { group:'ほのつな1', sub:'ほのお?' },
+  { group:'GC1',     sub:'早?' },
+  { group:'GC2',     sub:'本当?' },
+  { group:'ほのつな2', sub:'本当?' },
+];
+
+// 出力ログ（時系列）。各要素 { tag, text } で、tagは巻き戻し用の識別子
+let outLog = [];
+
+function digit(i){ return Number(input[i]); }
+
+function gc1Lines(){
+  const t = digit(0)===1;
+  const early = digit(3)===1;
+  if(t && early)  return [STR.GC1_TRUE_EARLY_1,  STR.GC1_TRUE_EARLY_2];
+  if(t && !early) return [STR.GC1_TRUE_LATE_1,   STR.GC1_TRUE_LATE_2];
+  if(!t && early) return [STR.GC1_FALSE_EARLY_1, STR.GC1_FALSE_EARLY_2];
+  return [STR.GC1_FALSE_LATE_1, STR.GC1_FALSE_LATE_2];
+}
+function ht1Line(){
+  const t = digit(1)===1;
+  const honoo = digit(2)===1;
+  if(t && honoo)   return STR.HT1_TRUE_HONOO;
+  if(t && !honoo)  return STR.HT1_TRUE_TSUNAMI;
+  if(!t && honoo)  return STR.HT1_FALSE_HONOO;
+  return STR.HT1_FALSE_TSUNAMI;
+}
+function gc2Lines(){
+  const t = digit(4)===1;
+  const gc1Early = digit(3)===1;
+  const early = !gc1Early;
+  if(t && early)  return [STR.GC2_TRUE_EARLY_1,  STR.GC2_TRUE_EARLY_2];
+  if(t && !early) return [STR.GC2_TRUE_LATE_1,   STR.GC2_TRUE_LATE_2];
+  if(!t && early) return [STR.GC2_FALSE_EARLY_1, STR.GC2_FALSE_EARLY_2];
+  return [STR.GC2_FALSE_LATE_1, STR.GC2_FALSE_LATE_2];
+}
+function ht2Line(){
+  const t = digit(5)===1;
+  const ht1Honoo = digit(2)===1;
+  const honoo = !ht1Honoo;
+  if(t && honoo)   return STR.HT2_TRUE_HONOO;
+  if(t && !honoo)  return STR.HT2_TRUE_TSUNAMI;
+  if(!t && honoo)  return STR.HT2_FALSE_HONOO;
+  return STR.HT2_FALSE_TSUNAMI;
+}
+
+function renderDigits(){
+  const wrap = document.getElementById('digits');
+  let html = '';
+  for(let i=0;i<6;i++){
+    const ch = input[i] || '';
+    const filled = ch ? 'filled' : '';
+    const cursor = (i === input.length && input.length < 6) ? 'cursor' : '';
+    const lab = DIGIT_LABELS[i];
+    html += `<div class="digit-col">
+      <div class="digit-label"><span class="dl-group">${lab.group}</span><span class="dl-sub">${lab.sub}</span></div>
+      <div class="digit ${filled} ${cursor}">${ch}</div>
+    </div>`;
+  }
+  wrap.innerHTML = html;
+}
+
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderSummary(){
+  const el = document.getElementById('summary');
+  let html = '<div class="sum-title">集計結果（チャット形式）</div>';
+  if(outLog.length === 0){
+    html += '<div class="chat-empty">入力すると順に表示されます</div>';
+  } else {
+    html += '<div class="chat-box">';
+    outLog.forEach(item => {
+      html += `<div class="chat-line">${escapeHtml(item.text)}</div>`;
+    });
+    html += '</div>';
+  }
+  el.innerHTML = html;
+}
+
+// 追加トグル
+let accState = null;
+let extState = { thunder:false, ice:false };
+
+function toggleAcc(v){
+  const prev = accState;
+  accState = (accState === v) ? null : v;
+  document.getElementById('accTrue').classList.toggle('on', accState === 'true');
+  document.getElementById('accFalse').classList.toggle('on', accState === 'false');
+  // 既存の加速度行を一旦除去（差し込みは最新の押下位置にするため）
+  outLog = outLog.filter(it => it.tag !== 'acc');
+  if(accState === 'true')  outLog.push({ tag:'acc', text:STR.ACC_TRUE });
+  else if(accState === 'false') outLog.push({ tag:'acc', text:STR.ACC_FALSE });
+  renderSummary();
+}
+function toggleExt(k){
+  extState[k] = !extState[k];
+  document.getElementById(k).classList.toggle('on', extState[k]);
+}
+
+function render(){ renderDigits(); renderSummary(); }
+
+function press(n){
+  if(input.length >= 6) return;
+  input += String(n);
+  const pos = input.length;
+
+  if(pos === 1) outLog.push({ tag:'d1', text:STR.GC1_HEADER });
+  if(pos === 3) outLog.push({ tag:'d3', text:ht1Line() });
+  if(pos === 4) gc1Lines().forEach(l => outLog.push({ tag:'d4', text:l }));
+  if(pos === 5) gc2Lines().forEach(l => outLog.push({ tag:'d5', text:l }));
+  if(pos === 6) outLog.push({ tag:'d6', text:ht2Line() });
+  render();
+}
+
+function del(){
+  if(input.length === 0) return;
+  const pos = input.length; // 削除する桁の位置
+  // その桁で追記したタグの行を全て除去
+  const tag = 'd' + pos;
+  outLog = outLog.filter(it => it.tag !== tag);
+  input = input.slice(0, -1);
+  render();
+}
+
+function clearAll(){
+  input = '';
+  outLog = [];
+  accState = null;
+  extState = { thunder:false, ice:false };
+  document.getElementById('accTrue').classList.remove('on');
+  document.getElementById('accFalse').classList.remove('on');
+  document.getElementById('thunder').classList.remove('on');
+  document.getElementById('ice').classList.remove('on');
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
