@@ -62,6 +62,7 @@
   .ext-btn.acc-true.on  { background: #1D9E75; border-color: #1D9E75; color: #fff; }
   .ext-btn.acc-false.on { background: #E24B4A; border-color: #E24B4A; color: #fff; }
   /* 雷=薄紫 / 氷=水色 */
+  .ext-btn.thunder, .ext-btn.ice { aspect-ratio: 2/0.85; }
   .ext-btn.thunder.on { background: #6B4E9E; border-color: #6B4E9E; color: #fff; }
   .ext-btn.ice.on     { background: #2E7D9E; border-color: #2E7D9E; color: #fff; }
 </style>
@@ -137,7 +138,7 @@ const STR = {
   HT2_FALSE_HONOO: "・・・・・・・・《ドーナツ》・・・・・・・・・・・・",
   HT2_FALSE_TSUNAMI: "・・・・・・・・・・・・・・・・・・・・《タケノコ》",
   ACC_TRUE: "【 　　加速度爆弾　とまれ 　　】",
-  ACC_FALSE: "【 　　加速度爆弾　うごけ 　　 】"
+  ACC_FALSE: "【 　　加速度爆弾　GOGO 　　 】"
 };
 
 const DIGIT_LABELS = [
@@ -154,13 +155,18 @@ let outLog = [];
 
 function digit(i){ return Number(input[i]); }
 
+function gcTag(isTrue, isEarly){
+  const dir = isEarly ? '【↑早↑・' : '【↓遅↓・';
+  return dir + (isTrue ? '本当' : '嘘') + '】';
+}
 function gc1Lines(){
   const t = digit(0)===1;
   const early = digit(3)===1;
-  if(t && early)  return [STR.GC1_TRUE_EARLY_1,  STR.GC1_TRUE_EARLY_2];
-  if(t && !early) return [STR.GC1_TRUE_LATE_1,   STR.GC1_TRUE_LATE_2];
-  if(!t && early) return [STR.GC1_FALSE_EARLY_1, STR.GC1_FALSE_EARLY_2];
-  return [STR.GC1_FALSE_LATE_1, STR.GC1_FALSE_LATE_2];
+  const tag = gcTag(t, early);
+  if(t && early)  return [STR.GC1_TRUE_EARLY_1 + tag,  STR.GC1_TRUE_EARLY_2];
+  if(t && !early) return [STR.GC1_TRUE_LATE_1 + tag,   STR.GC1_TRUE_LATE_2];
+  if(!t && early) return [STR.GC1_FALSE_EARLY_1 + tag, STR.GC1_FALSE_EARLY_2];
+  return [STR.GC1_FALSE_LATE_1 + tag, STR.GC1_FALSE_LATE_2];
 }
 function ht1Line(){
   const t = digit(1)===1;
@@ -174,10 +180,11 @@ function gc2Lines(){
   const t = digit(4)===1;
   const gc1Early = digit(3)===1;
   const early = !gc1Early;
-  if(t && early)  return [STR.GC2_TRUE_EARLY_1,  STR.GC2_TRUE_EARLY_2];
-  if(t && !early) return [STR.GC2_TRUE_LATE_1,   STR.GC2_TRUE_LATE_2];
-  if(!t && early) return [STR.GC2_FALSE_EARLY_1, STR.GC2_FALSE_EARLY_2];
-  return [STR.GC2_FALSE_LATE_1, STR.GC2_FALSE_LATE_2];
+  const tag = gcTag(t, early);
+  if(t && early)  return [STR.GC2_TRUE_EARLY_1 + tag,  STR.GC2_TRUE_EARLY_2];
+  if(t && !early) return [STR.GC2_TRUE_LATE_1 + tag,   STR.GC2_TRUE_LATE_2];
+  if(!t && early) return [STR.GC2_FALSE_EARLY_1 + tag, STR.GC2_FALSE_EARLY_2];
+  return [STR.GC2_FALSE_LATE_1 + tag, STR.GC2_FALSE_LATE_2];
 }
 function ht2Line(){
   const t = digit(5)===1;
