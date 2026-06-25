@@ -46,7 +46,7 @@
   .chat-empty { font-size: 12px; color: #666; }
   /* チャット形式出力 */
   .chat-box { display: flex; flex-direction: column; gap: 2px; overflow-x: auto; }
-  .chat-line { font-family: "Meiryo UI", "Meiryo", sans-serif; font-size: 13px; line-height: 1.7; color: #e8e8e8; white-space: pre; }
+  .chat-line { font-family: "Meiryo UI", "Meiryo", "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif; font-feature-settings: "palt" 1; font-size: 13px; line-height: 1.7; color: #e8e8e8; white-space: pre; min-height: 22px; }
   /* 集計行の高さ確保（レイアウトが動かないように） */
   .sum-row { min-height: 21px; }
   .sum-row.placeholder { color: #555; }
@@ -111,7 +111,7 @@
 let input = ''; // 最大6桁
 
 const STR = {
-  GC1_HEADER: "<<<<<<<<<<<< start >>>>>>>>>>>>",
+  GC1_HEADER: "<<<<<<<< start >>>>>>>>",
   GC1_TRUE_EARLY_1: "《水雷〇》・・・・・・・・・・・・・・・・・・・・・・",
   GC1_TRUE_EARLY_2: "・・・・《見ない》・・・・・・・・・・・・・・・・・・",
   GC1_TRUE_LATE_1: "・・・・《見ない》・・・・・・・・・・・・・・・・・・",
@@ -212,15 +212,17 @@ function escapeHtml(s){
 function renderSummary(){
   const el = document.getElementById('summary');
   let html = '<div class="sum-title">集計結果（チャット形式）</div>';
-  if(outLog.length === 0){
-    html += '<div class="chat-empty">入力すると順に表示されます</div>';
-  } else {
-    html += '<div class="chat-box">';
-    outLog.forEach(item => {
-      html += `<div class="chat-line">${escapeHtml(item.text)}</div>`;
-    });
-    html += '</div>';
+  html += '<div class="chat-box">';
+  const TOTAL = 8;
+  for(let i=0;i<TOTAL;i++){
+    if(i < outLog.length){
+      html += `<div class="chat-line">${escapeHtml(outLog[i].text)}</div>`;
+    } else {
+      // 空行（高さ確保用）。&nbsp;で行の高さを維持
+      html += '<div class="chat-line">&nbsp;</div>';
+    }
   }
+  html += '</div>';
   el.innerHTML = html;
 }
 
