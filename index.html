@@ -98,10 +98,6 @@
 <div class="extra">
   <div class="extra-note">以下メモ（集計結果には反映されません）</div>
   <div class="extra-row">
-    <button class="ext-btn acc-true"  id="accTrue"  onclick="toggleAcc('true')">加速度<br><span class="acc-sub">（本当・動かない）</span></button>
-    <button class="ext-btn acc-false" id="accFalse" onclick="toggleAcc('false')">加速度<br><span class="acc-sub">（嘘・動く）</span></button>
-  </div>
-  <div class="extra-row">
     <button class="ext-btn thunder" id="thunder" onclick="toggleExt('thunder')">雷</button>
     <button class="ext-btn ice"     id="ice"     onclick="toggleExt('ice')">氷</button>
   </div>
@@ -109,7 +105,7 @@
 
 
 <script>
-let input = ''; // 最大6桁
+let input = ''; // 最大7桁
 
 const STR = {
   GC1_HEADER: "<<<<<<<< start >>>>>>>>",
@@ -121,10 +117,10 @@ const STR = {
   GC1_FALSE_EARLY_2: "・・・・《見る》・・・・・・・・・・・・・・・・・・・・",
   GC1_FALSE_LATE_1: "・・・・《見る》・・・・・・・・・・・・・・・・・・・・",
   GC1_FALSE_LATE_2: "・・・・・・・・・・・・《水雷？》・・・・・・・・・・",
-  HT1_TRUE_HONOO: " ・・・・・・・・《タケノコ》・・・・・・・・・・・・",
-  HT1_TRUE_TSUNAMI: "・・・・・・・・・・・・・・・・・・・・《ドーナツ》",
-  HT1_FALSE_HONOO: "・・・・・・・・《ドーナツ》・・・・・・・・・・・・",
-  HT1_FALSE_TSUNAMI: "・・・・・・・・・・・・・・・・・・・・《タケノコ》",
+  HT1_TRUE_HONOO: " ・・・・・・・・《外に出る》・・・・・・・・・・・・",
+  HT1_TRUE_TSUNAMI: "・・・・・・・・・・・・・・・・・・・・《中で待つ》",
+  HT1_FALSE_HONOO: "・・・・・・・・《中で待つ》・・・・・・・・・・・・",
+  HT1_FALSE_TSUNAMI: "・・・・・・・・・・・・・・・・・・・・《外に出る》",
   GC2_TRUE_EARLY_1: "《水雷〇》・・・・・・・・・・・・・・・・・・・・・・",
   GC2_TRUE_EARLY_2: "・・・・・・・・・・・・・・・・《見ない》・・・・・・",
   GC2_TRUE_LATE_1: "・・・・・・・・・・・・《水雷〇》・・・・・・・・・・",
@@ -133,40 +129,43 @@ const STR = {
   GC2_FALSE_EARLY_2: "・・・・・・・・・・・・・・・・《見る》・・・・・・・・",
   GC2_FALSE_LATE_1: "・・・・・・・・・・・・《水雷？》・・・・・・・・・・",
   GC2_FALSE_LATE_2: "・・・・・・・・・・・・・・・・《見る》・・・・・・・・",
-  HT2_TRUE_HONOO: " ・・・・・・・・《タケノコ》・・・・・・・・・・・・",
-  HT2_TRUE_TSUNAMI: "・・・・・・・・・・・・・・・・・・・・《ドーナツ》",
-  HT2_FALSE_HONOO: "・・・・・・・・《ドーナツ》・・・・・・・・・・・・",
-  HT2_FALSE_TSUNAMI: "・・・・・・・・・・・・・・・・・・・・《タケノコ》",
-  ACC_TRUE: "【 　　加速度爆弾　とまれ 　　】",
-  ACC_FALSE: "【 　　加速度爆弾　GOGO 　　 】"
+  HT2_TRUE_HONOO: " ・・・・・・・・《外に出る》・・・・・・・・・・・・",
+  HT2_TRUE_TSUNAMI: "・・・・・・・・・・・・・・・・・・・・《中で待つ》",
+  HT2_FALSE_HONOO: "・・・・・・・・《中で待つ》・・・・・・・・・・・・",
+  HT2_FALSE_TSUNAMI: "・・・・・・・・・・・・・・・・・・・・《外に出る》",
+  ACC_YES: "・・・・・・・・・・・・・・・・・・・・・・・・・・・・・  　　↑↑↑↑",
+  ACC_NO:  "・・・・・・・・・・・・・・・・・・・・・・・・・・・・・  　　↓↓↓↓"
 };
 
+// 7桁: 1=GC1本当 2=ほのつな1本当 3=ほのつな1ほのお 4=GC1早 5=加速度あり 6=GC2本当 7=ほのつな2本当
 const DIGIT_LABELS = [
   { group:'GC1',     sub:'本当?' },
   { group:'ほのつな1', sub:'本当?' },
   { group:'ほのつな1', sub:'ほのお?' },
   { group:'GC1',     sub:'早?' },
+  { group:'加速度',   sub:'あり?' },
   { group:'GC2',     sub:'本当?' },
   { group:'ほのつな2', sub:'本当?' },
 ];
 
-// 出力ログ（時系列）。各要素 { tag, text } で、tagは巻き戻し用の識別子
+const NUM_DIGITS = 7;
+
 let outLog = [];
 
 function digit(i){ return Number(input[i]); }
 
-function gcTag(isTrue, isEarly){
-  const dir = isEarly ? '【↑早↑・' : '【↓遅↓・';
-  return dir + (isTrue ? '本当' : '嘘') + '】';
+function accTag(isTrue){
+  return isTrue ? '【加速度・止まる】' : '【加速度・動く】';
 }
+
 function gc1Lines(){
   const t = digit(0)===1;
   const early = digit(3)===1;
-  const tag = gcTag(t, early);
-  if(t && early)  return [STR.GC1_TRUE_EARLY_1 + tag,  STR.GC1_TRUE_EARLY_2];
-  if(t && !early) return [STR.GC1_TRUE_LATE_1 + tag,   STR.GC1_TRUE_LATE_2];
-  if(!t && early) return [STR.GC1_FALSE_EARLY_1 + tag, STR.GC1_FALSE_EARLY_2];
-  return [STR.GC1_FALSE_LATE_1 + tag, STR.GC1_FALSE_LATE_2];
+  const tag = accTag(t); // GC1は2行目末尾
+  if(t && early)  return [STR.GC1_TRUE_EARLY_1,  STR.GC1_TRUE_EARLY_2 + tag];
+  if(t && !early) return [STR.GC1_TRUE_LATE_1,   STR.GC1_TRUE_LATE_2 + tag];
+  if(!t && early) return [STR.GC1_FALSE_EARLY_1, STR.GC1_FALSE_EARLY_2 + tag];
+  return [STR.GC1_FALSE_LATE_1, STR.GC1_FALSE_LATE_2 + tag];
 }
 function ht1Line(){
   const t = digit(1)===1;
@@ -176,18 +175,22 @@ function ht1Line(){
   if(!t && honoo)  return STR.HT1_FALSE_HONOO;
   return STR.HT1_FALSE_TSUNAMI;
 }
+function accLine(){
+  // 5桁目: 1=あり 2=なし
+  return digit(4)===1 ? STR.ACC_YES : STR.ACC_NO;
+}
 function gc2Lines(){
-  const t = digit(4)===1;
+  const t = digit(5)===1;        // 6桁目 GC2本当
   const gc1Early = digit(3)===1;
   const early = !gc1Early;
-  const tag = gcTag(t, early);
+  const tag = accTag(t); // GC2は1行目末尾
   if(t && early)  return [STR.GC2_TRUE_EARLY_1 + tag,  STR.GC2_TRUE_EARLY_2];
   if(t && !early) return [STR.GC2_TRUE_LATE_1 + tag,   STR.GC2_TRUE_LATE_2];
   if(!t && early) return [STR.GC2_FALSE_EARLY_1 + tag, STR.GC2_FALSE_EARLY_2];
   return [STR.GC2_FALSE_LATE_1 + tag, STR.GC2_FALSE_LATE_2];
 }
 function ht2Line(){
-  const t = digit(5)===1;
+  const t = digit(6)===1;        // 7桁目
   const ht1Honoo = digit(2)===1;
   const honoo = !ht1Honoo;
   if(t && honoo)   return STR.HT2_TRUE_HONOO;
@@ -199,10 +202,10 @@ function ht2Line(){
 function renderDigits(){
   const wrap = document.getElementById('digits');
   let html = '';
-  for(let i=0;i<6;i++){
+  for(let i=0;i<NUM_DIGITS;i++){
     const ch = input[i] || '';
     const filled = ch ? 'filled' : '';
-    const cursor = (i === input.length && input.length < 6) ? 'cursor' : '';
+    const cursor = (i === input.length && input.length < NUM_DIGITS) ? 'cursor' : '';
     const lab = DIGIT_LABELS[i];
     html += `<div class="digit-col">
       <div class="digit-label"><span class="dl-group">${lab.group}</span><span class="dl-sub">${lab.sub}</span></div>
@@ -220,12 +223,11 @@ function renderSummary(){
   const el = document.getElementById('summary');
   let html = '<div class="sum-title">集計結果（チャット形式）</div>';
   html += '<div class="chat-box">';
-  const TOTAL = 8;
+  const TOTAL = 9;
   for(let i=0;i<TOTAL;i++){
     if(i < outLog.length){
       html += `<div class="chat-line">${escapeHtml(outLog[i].text)}</div>`;
     } else {
-      // 空行（高さ確保用）。&nbsp;で行の高さを維持
       html += '<div class="chat-line">&nbsp;</div>';
     }
   }
@@ -233,21 +235,8 @@ function renderSummary(){
   el.innerHTML = html;
 }
 
-// 追加トグル
-let accState = null;
+// 雷・氷トグル（表示のみ）
 let extState = { thunder:false, ice:false };
-
-function toggleAcc(v){
-  const prev = accState;
-  accState = (accState === v) ? null : v;
-  document.getElementById('accTrue').classList.toggle('on', accState === 'true');
-  document.getElementById('accFalse').classList.toggle('on', accState === 'false');
-  // 既存の加速度行を一旦除去（差し込みは最新の押下位置にするため）
-  outLog = outLog.filter(it => it.tag !== 'acc');
-  if(accState === 'true')  outLog.push({ tag:'acc', text:STR.ACC_TRUE });
-  else if(accState === 'false') outLog.push({ tag:'acc', text:STR.ACC_FALSE });
-  renderSummary();
-}
 function toggleExt(k){
   extState[k] = !extState[k];
   document.getElementById(k).classList.toggle('on', extState[k]);
@@ -256,22 +245,22 @@ function toggleExt(k){
 function render(){ renderDigits(); renderSummary(); }
 
 function press(n){
-  if(input.length >= 6) return;
+  if(input.length >= NUM_DIGITS) return;
   input += String(n);
   const pos = input.length;
 
   if(pos === 1) outLog.push({ tag:'d1', text:STR.GC1_HEADER });
   if(pos === 3) outLog.push({ tag:'d3', text:ht1Line() });
   if(pos === 4) gc1Lines().forEach(l => outLog.push({ tag:'d4', text:l }));
-  if(pos === 5) gc2Lines().forEach(l => outLog.push({ tag:'d5', text:l }));
-  if(pos === 6) outLog.push({ tag:'d6', text:ht2Line() });
+  if(pos === 5) outLog.push({ tag:'d5', text:accLine() });
+  if(pos === 6) gc2Lines().forEach(l => outLog.push({ tag:'d6', text:l }));
+  if(pos === 7) outLog.push({ tag:'d7', text:ht2Line() });
   render();
 }
 
 function del(){
   if(input.length === 0) return;
-  const pos = input.length; // 削除する桁の位置
-  // その桁で追記したタグの行を全て除去
+  const pos = input.length;
   const tag = 'd' + pos;
   outLog = outLog.filter(it => it.tag !== tag);
   input = input.slice(0, -1);
@@ -281,10 +270,7 @@ function del(){
 function clearAll(){
   input = '';
   outLog = [];
-  accState = null;
   extState = { thunder:false, ice:false };
-  document.getElementById('accTrue').classList.remove('on');
-  document.getElementById('accFalse').classList.remove('on');
   document.getElementById('thunder').classList.remove('on');
   document.getElementById('ice').classList.remove('on');
   render();
